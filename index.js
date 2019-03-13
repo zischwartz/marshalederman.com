@@ -63,12 +63,18 @@ function create_site(items) {
 function create_item_page(item) {
   function make_img(p) {
     // this only works for offline xxx
-    return `<img src="../../images/${p}"/>`;
+    let src =
+      process.env.NODE_ENV != "production"
+        ? `../../images/${p}` // it's up one when just loadin git in dev, because it's in dist
+        : `../images/${p}`;
+    return `<img src="${src}"/>`;
   }
 
   let title = `${item.title}`;
   let image_paths = item.row.slice(4);
-  let content = `<div>${image_paths.map(make_img)}</div>`;
+  let content = `<div>${image_paths.map(make_img)} <div class="item_text">${
+    item.text
+  }</div></div>`;
   let path = `dist/${item.slug}`;
   fs.mkdirSync(path);
   fs.writeFileSync(
@@ -88,7 +94,7 @@ function create_index_items_content(items) {
       process.env.NODE_ENV != "production"
         ? `../images/${piece.cover_image}` // it's up one when just loadin git in dev, because it's in dist
         : `images/${piece.cover_image}`; // in prod, images will be at the top level of dist
-    // for prod, we'll need a thing to copy all the images over to dist
+    // for prod, we'll need   to copy all the images over to dist
     result += `<div class="thumb"><a href="${
       piece.slug
     }/"><img src="${src}"></a></div>`;
