@@ -1,5 +1,13 @@
 const fs = require("fs");
+const path = require("path");
+
 const request = require("request");
+const render = require("es6-template-render");
+
+const index_template = fs.readFileSync(
+  path.resolve(__dirname, "src/index.html"),
+  "utf8"
+);
 
 // let items_sheet_url =
 //   "https://sheets.googleapis.com/v4/spreadsheets/SPREADSHEET_ID/WORKSHEET_TAB_NAME?key=YOUR_API_KEY";
@@ -25,6 +33,7 @@ function create_item_objects_from_raw(values) {
       let v = row[i];
       item[headings[i]] = v;
     }
+    item["slug"] = slugify(item.title);
     result.push(item);
     // console.log(row);
   }
@@ -32,7 +41,30 @@ function create_item_objects_from_raw(values) {
 }
 
 function create_site(items) {
-  fs.writeFileSync(`dist/index.html`, "Hello world");
+  let title = "Marsha Lederman";
+  // doh, right it can't do arrays
+  let index_items_content = create_index_items_content(items);
+  fs.writeFileSync(
+    `dist/index.html`,
+    render(index_template, { index_items_content, title })
+  );
+}
+
+console.log(process.env.NODE_ENV);
+
+function create_index_items_content(items) {
+  let result = "";
+  for (var i = 0; i < items.length; i++) {
+    let piece = items[i];
+    // for local testing
+    let src =
+      process.env.NODE_ENV != "production"
+        ? `../images/${piece.cover_image}`
+        : `images/${piece.cover_image}`;
+    // for prod, we'll need a thing to copy all the images over to dist
+    result += `<a href="${piece.slug}/"><img src="${src}"></a>`;
+  }
+  return result;
 }
 
 function slugify(text, retain_dots = false) {
