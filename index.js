@@ -21,13 +21,48 @@ let items_sheet_url =
 
 let content_sheet_url = `https://sheets.googleapis.com/v4/spreadsheets/12V1CZtjXPIio2Ar3-5Vd0DpGnjxYe2jL1jHgc1Zpk_o/values/content?key=AIzaSyAqttGhmNJpCrkhJ3Qnj9KHFmTeL8KXjuI`;
 
-request(items_sheet_url, function(error, response, body) {
-  // console.log("error:", error); // Print the error if one occurred
-  // console.log("statusCode:", response && response.statusCode); // Print the response status code if a response was received
-  // console.log("body:", body); // Print the HTML for the Google homepage.
+function get_item_data_and_run() {
+  request(items_sheet_url, function(error, response, body) {
+    // console.log("error:", error); // Print the error if one occurred
+    // console.log("statusCode:", response && response.statusCode); // Print the response status code if a response was received
+    // console.log("body:", body); // Print the HTML for the Google homepage.
+    let body_obj = JSON.parse(body);
+    // console.log(body_obj);
+    let items = create_item_objects_from_raw(body_obj.values);
+    // console.log(items);
+    create_site(items);
+  });
+}
+
+//  get the content one and then run the above, which in turn runs create_site
+request(content_sheet_url, function(error, response, body) {
   let body_obj = JSON.parse(body);
-  let items = create_item_objects_from_raw(body_obj.values);
-  create_site(items);
+  // console.log(body_obj);
+  let rows = body_obj.values;
+  rows.shift();
+  let home_page_text = rows.shift();
+  let every_page_text = rows.shift();
+  // console.log(rows);
+  for (row of rows) {
+    let title = "Marsha Lederman -" + row[0];
+    let content = row[1]
+      .split("|")
+      .map(a => `<p>${a}</p>`)
+      .join("");
+    content = `<div class="info_page">${content}</div>`;
+    // console.log(content);
+    let path = `dist/${slugify(row[0])}`;
+    fs.mkdirSync(path);
+    fs.writeFileSync(
+      `${path}/index.html`,
+      render(index_template, { content, title })
+    );
+  }
+  // fs.writeFileSync(
+  //   `dist/about.html`,
+  //   render(index_template, { content: "blarg", title: title + " About" })
+  // );
+  get_item_data_and_run();
 });
 
 function create_item_objects_from_raw(values) {
@@ -37,12 +72,18 @@ function create_item_objects_from_raw(values) {
     let item = {};
     for (var i = 0; i < headings.length; i++) {
       let v = row[i];
-      item[headings[i]] = v;
+      if (v !== undefined) {
+        item[headings[i]] = v;
+      }
     }
-    item["slug"] = slugify(item.title);
-    // stick the original row back in
-    item["row"] = row;
-    result.push(item);
+    // only if it has a title field do we add it
+    if (item["title"]) {
+      item["slug"] = slugify(item.title);
+      // stick the original row back in
+      item["row"] = row;
+      result.push(item);
+    }
+
     // console.log(row);
   }
   return result;
@@ -57,6 +98,7 @@ function create_site(items) {
     render(index_template, { content: index_items_content, title })
   );
 
+  // now make a page for each item
   items.forEach(item => create_item_page(item));
 }
 
@@ -67,14 +109,20 @@ function create_item_page(item) {
       process.env.NODE_ENV != "production"
         ? `../../images/${p}` // it's up one when just loadin git in dev, because it's in dist
         : `../images/${p}`;
-    return `<img src="${src}"/>`;
+    return `<img class="full" src="${src}"/>`;
   }
 
   let title = `${item.title}`;
-  let image_paths = item.row.slice(4);
-  let content = `<div>${image_paths.map(make_img)} <div class="item_text">${
-    item.text
-  }</div></div>`;
+  // let image_paths = item.row.slice(4);
+  let image_paths = item.row.slice(5);
+  // console.log(item.row.slice(5));
+  // image_paths.unshift(item.cover_image);
+  let content = `<div>${make_img(
+    item.cover_image
+  )} <div class="item_text">${item.text
+    .split("|")
+    .map(a => `<p>${a}</p>`)
+    .join("")}</div>${image_paths.map(make_img)}</div>`;
   let path = `dist/${item.slug}`;
   fs.mkdirSync(path);
   fs.writeFileSync(
@@ -99,7 +147,7 @@ function create_index_items_content(items) {
       piece.slug
     }/"><img src="${src}"></a></div>`;
   }
-  return result;
+  return `<div id="index_items">${result}</div>`;
 }
 
 function slugify(text, retain_dots = false) {
