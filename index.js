@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
+const dotenv = require("dotenv").config();
 const request = require("request");
 const render = require("es6-template-render");
 
@@ -16,10 +17,13 @@ const index_template = fs.readFileSync(
 // let items_sheet_url =
 //   "https://sheets.googleapis.com/v4/spreadsheets/SPREADSHEET_ID/WORKSHEET_TAB_NAME?key=YOUR_API_KEY";
 
-let items_sheet_url =
-  "https://sheets.googleapis.com/v4/spreadsheets/12V1CZtjXPIio2Ar3-5Vd0DpGnjxYe2jL1jHgc1Zpk_o/values/items?key=AIzaSyAqttGhmNJpCrkhJ3Qnj9KHFmTeL8KXjuI";
+let items_sheet_url = `https://sheets.googleapis.com/v4/spreadsheets/12V1CZtjXPIio2Ar3-5Vd0DpGnjxYe2jL1jHgc1Zpk_o/values/items?key=${
+  process.env.GOOGLE_API_KEY
+}`;
 
-let content_sheet_url = `https://sheets.googleapis.com/v4/spreadsheets/12V1CZtjXPIio2Ar3-5Vd0DpGnjxYe2jL1jHgc1Zpk_o/values/content?key=AIzaSyAqttGhmNJpCrkhJ3Qnj9KHFmTeL8KXjuI`;
+let content_sheet_url = `https://sheets.googleapis.com/v4/spreadsheets/12V1CZtjXPIio2Ar3-5Vd0DpGnjxYe2jL1jHgc1Zpk_o/values/content?key=${
+  process.env.GOOGLE_API_KEY
+}`;
 
 function get_item_data_and_run() {
   request(items_sheet_url, function(error, response, body) {
@@ -37,7 +41,10 @@ function get_item_data_and_run() {
 //  get the content one and then run the above, which in turn runs create_site
 request(content_sheet_url, function(error, response, body) {
   let body_obj = JSON.parse(body);
-  // console.log(body_obj);
+  if (!body_obj.values) {
+    console.log(body_obj);
+    return;
+  }
   let rows = body_obj.values;
   rows.shift();
   let home_page_text = rows.shift();
