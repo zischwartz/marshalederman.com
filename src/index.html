@@ -2,6 +2,7 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>${title}</title>
     <link
       href="https://fonts.googleapis.com/css?family=Open+Sans|PT+Serif"
@@ -23,7 +24,8 @@
       h1,
       h2,
       h3,
-      h4 {
+      h4,
+      p {
         font-family: "PT Serif", serif;
         text-align: center;
       }
@@ -52,7 +54,7 @@
         flex-direction: column;
         flex-wrap: wrap;
         text-align: center;
-        font-family: "Open Sans", sans-serif;
+        /* font-family: "Open Sans", sans-serif; */
       }
       .item_text {
         padding: 50px 0px;
@@ -84,14 +86,24 @@
       }
       /* div.thumb img { */
       img.full {
-        max-width: 90vw;
-        margin-left: 5vw;
+        width: 90vw;
+        max-width: 700px;
         border: 10px solid rgb(77, 86, 92);
       }
       a,
       a:visited {
         color: rgb(155, 219, 113);
         text-decoration: none;
+      }
+      div.alert {
+        background-color: rgba(255, 255, 255, 0.3);
+        padding: 10px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: 3px;
+        margin-top: 10px;
+        margin-bottom: 10px;
       }
     </style>
   </head>
@@ -106,6 +118,7 @@
       </nav>
       <h1>${title}</h1>
       <div id="content">${content}</div>
+      ${every_page_text}
     </div>
   </body>
 </html>

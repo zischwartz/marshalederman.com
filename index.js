@@ -25,7 +25,7 @@ let content_sheet_url = `https://sheets.googleapis.com/v4/spreadsheets/12V1CZtjX
   process.env.GOOGLE_API_KEY
 }`;
 
-function get_item_data_and_run() {
+function get_item_data_and_create_site(meta_text) {
   request(items_sheet_url, function(error, response, body) {
     // console.log("error:", error); // Print the error if one occurred
     // console.log("statusCode:", response && response.statusCode); // Print the response status code if a response was received
@@ -34,7 +34,7 @@ function get_item_data_and_run() {
     // console.log(body_obj);
     let items = create_item_objects_from_raw(body_obj.values);
     // console.log(items);
-    create_site(items);
+    create_site(items, meta_text);
   });
 }
 
@@ -47,29 +47,25 @@ request(content_sheet_url, function(error, response, body) {
   }
   let rows = body_obj.values;
   rows.shift();
-  let home_page_text = rows.shift();
-  let every_page_text = rows.shift();
+  let home_page_text = rows.shift()[1];
+  let every_page_text = rows.shift()[1];
+  every_page_text = every_page_text
+    ? `<div class="alert"> ${para(every_page_text)}</div>`
+    : "";
   // console.log(rows);
   for (row of rows) {
-    let title = "Marsha Lederman -" + row[0];
-    let content = row[1]
-      .split("|")
-      .map(a => `<p>${a}</p>`)
-      .join("");
+    let title = "Marsha Lederman - " + row[0];
+    let content = para(row[1]);
+
     content = `<div class="info_page">${content}</div>`;
-    // console.log(content);
     let path = `dist/${slugify(row[0])}`;
     fs.mkdirSync(path);
     fs.writeFileSync(
       `${path}/index.html`,
-      render(index_template, { content, title })
+      render(index_template, { content, title, every_page_text })
     );
   }
-  // fs.writeFileSync(
-  //   `dist/about.html`,
-  //   render(index_template, { content: "blarg", title: title + " About" })
-  // );
-  get_item_data_and_run();
+  get_item_data_and_create_site({ home_page_text, every_page_text });
 });
 
 function create_item_objects_from_raw(values) {
@@ -96,20 +92,24 @@ function create_item_objects_from_raw(values) {
   return result;
 }
 
-function create_site(items) {
+function create_site(items, meta_text) {
+  // console.log(meta_text);
+  let { every_page_text } = meta_text;
   let title = "Marsha Lederman";
   // doh, right it can't do arrays
   let index_items_content = create_index_items_content(items);
+  let content = para(meta_text["home_page_text"]) + index_items_content;
   fs.writeFileSync(
     `dist/index.html`,
-    render(index_template, { content: index_items_content, title })
+    render(index_template, { content, title, every_page_text })
+    // render(index_template, { content: index_items_content, title })
   );
 
   // now make a page for each item
-  items.forEach(item => create_item_page(item));
+  items.forEach(item => create_item_page(item, every_page_text));
 }
 
-function create_item_page(item) {
+function create_item_page(item, every_page_text) {
   function make_img(p) {
     // this only works for offline xxx
     let src =
@@ -126,15 +126,14 @@ function create_item_page(item) {
   // image_paths.unshift(item.cover_image);
   let content = `<div>${make_img(
     item.cover_image
-  )} <div class="item_text">${item.text
-    .split("|")
-    .map(a => `<p>${a}</p>`)
-    .join("")}</div>${image_paths.map(make_img)}</div>`;
+  )} <div class="item_text">${para(item.text)}</div>${image_paths.map(
+    make_img
+  )}</div>`;
   let path = `dist/${item.slug}`;
   fs.mkdirSync(path);
   fs.writeFileSync(
     `${path}/index.html`,
-    render(index_template, { content, title })
+    render(index_template, { content, title, every_page_text })
   );
 }
 
@@ -166,4 +165,11 @@ function slugify(text, retain_dots = false) {
     .replace(reg_ex, "") // except '.' depending on retain_dots, remove non-word [a-z0-9_], non-whitespace, non-hyphen characters
     .replace(/[\s_-]+/g, "_") // swap any length of whitespace, underscore, hyphen characters with a single _
     .replace(/^-+|-+$/g, ""); // remove leading, trailing -
+}
+
+function para(s) {
+  return s
+    .split("|")
+    .map(a => `<p>${a}</p>`)
+    .join("");
 }
